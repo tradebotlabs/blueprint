@@ -1,0 +1,30 @@
+version: "3.8"
+services:
+  redis:
+    image: redis:6-alpine
+    restart: always
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - blueprint 
+  mysql:
+    image: mysql:8.0.19
+    command: '--default-authentication-plugin=mysql_native_password'
+    restart: always
+    networks:
+      - blueprint
+    ports:
+    - 3306:3306
+    environment:
+      MYSQL_DATABASE: vfxcore
+      MYSQL_USER: vfxuser
+      MYSQL_PASSWORD: root@12345
+      MYSQL_ROOT_PASSWORD: 'root'
+      TZ: 'Asia/Amman'
+    volumes:
+      - /home/emran/go/src/gitlab.com/vfx/blueprint/mysql_data:/var/lib/mysql
+networks:
+  blueprint:
+    name: blueprint
+    driver: bridge

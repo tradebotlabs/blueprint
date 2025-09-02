@@ -1,0 +1,103 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run security scan daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+jobs:
+  govulncheck:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.22'
+        cache: true
+    
+    - name: Install govulncheck
+      run: go install golang.org/x/vuln/cmd/govulncheck@latest
+    
+    - name: Run govulncheck
+      run: govulncheck -json ./... > vulnerabilities.json
+      continue-on-error: true
+    
+    - name: Upload vulnerability report
+      uses: actions/upload-artifact@v4
+      with:
+        name: vulnerability-report
+        path: vulnerabilities.json
+    
+    - name: Check for critical vulnerabilities
+      run: |
+        if [ -s vulnerabilities.json ]; then
+          echo "Vulnerabilities found!"
+          cat vulnerabilities.json
+          exit 1
+        fi
+
+  gosec:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Run Gosec Security Scanner
+      uses: securego/gosec@master
+      with:
+        args: '-fmt json -out gosec-report.json ./...'
+    
+    - name: Upload Gosec report
+      uses: actions/upload-artifact@v4
+      with:
+        name: gosec-report
+        path: gosec-report.json
+
+  dependency-check:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.22'
+    
+    - name: Check for outdated dependencies
+      run: |
+        go list -u -m all
+    
+    - name: Verify dependencies
+      run: |
+        go mod verify
+        go mod tidy
+        if [ -n "$(git status --porcelain go.mod go.sum)" ]; then
+          echo "go.mod or go.sum is not tidy"
+          exit 1
+        fi
+
+  docker-scan:
+    runs-on: ubuntu-latest
+    if: github.event_name != 'schedule'
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Build Docker image
+      run: docker build -t blueprint:latest .
+    
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'blueprint:latest'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+    
+    - name: Upload Trivy results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: 'trivy-results.sarif'
