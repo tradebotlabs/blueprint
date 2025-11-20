@@ -23,7 +23,7 @@ services:
       MYSQL_ROOT_PASSWORD: 'root'
       TZ: 'Asia/Amman'
     volumes:
-      - /home/emran/go/src/gitlab.com/vfx/blueprint/mysql_data:/var/lib/mysql
+      - ${MYSQL_DATA}:/var/lib/mysql
 networks:
   blueprint:
     name: blueprint
