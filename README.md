@@ -1,15 +1,15 @@
-# Forex Platform Blueprint Service
+# Platform Blueprint Service
 
-## Owner: JeelRupapara (zeelrupapara@gmail.com) 
+## Owner: JeelRupapara (zeelrupapara@gmail.com)
 
-This is Forex Platform GoLang micro-service project 
+This is a Platform GoLang micro-service project 
 
 1. Must follow the code structure as per lead developer, this code can't be copied or saved for personal use 
 2. Unless a good reason or bug in this blueprint no allowed allowed to change 
 
 
 
-# Forex Platform Blueprint 
+# Platform Blueprint
 
 A blueprint micro-service 
 

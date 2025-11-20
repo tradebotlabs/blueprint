@@ -9,25 +9,27 @@ import (
 
 // Env vars gose here so we don't change names by mistake
 const (
-	GPRC_HOST      = "GPRC_HOST"
-	GRPC_PORT      = "GRPC_PORT"
-	REDIS_URL      = "REDIS_URL"
-	REDIS_PASSWORD = "REDIS_PASSWORD"
-	MYSQL_HOST     = "MYSQL_HOST"
-	MYSQL_PORT     = "MYSQL_PORT"
-	MYSQL_USER     = "MYSQL_USER"
-	MYSQL_PASSWORD = "MYSQL_PASSWORD"
+	GPRC_HOST         = "GPRC_HOST"
+	GRPC_PORT         = "GRPC_PORT"
+
+	REDIS_URL         = "REDIS_URL"
+	REDIS_PASSWORD    = "REDIS_PASSWORD"
 	
+	POSTGRES_HOST     = "POSTGRES_HOST"
+	POSTGRES_PORT     = "POSTGRES_PORT"
+	POSTGRES_USER     = "POSTGRES_USER"
+	POSTGRES_PASSWORD = "POSTGRES_PASSWORD"
+	POSTGRES_DB       = "POSTGRES_DB"
+
 )
 
 // Config blueprint microservice
 type Config struct {
-	Setting Setting
-	GRPC   GRPC
-	Logger Logger
-	Redis  Redis
-	MySQL  MySQL
-	
+	Setting  Setting
+	GRPC     GRPC
+	Logger   Logger
+	Redis    Redis
+	Postgres Postgres
 }
 
 type Setting struct {
@@ -64,13 +66,13 @@ type Mongo struct {
 	PoolTimeout int
 }
 
-// MySQL config
-type MySQL struct {
-	MysqlHost     string
-	MysqlPort     string
-	MysqlUser     string
-	MysqlPassword string
-	MysqlDBName   string
+// Postgres config
+type Postgres struct {
+	PostgresHost     string
+	PostgresPort     string
+	PostgresUser     string
+	PostgresPassword string
+	PostgresDBName   string
 }
 
 // GRPC gRPC service config
@@ -93,25 +95,25 @@ func NewConfig() *Config {
 	logger.LogFile = "blueprint.log"
 	redis := Redis{}
 	gprc := GRPC{}
-	mysql := MySQL{}
+	postgres := Postgres{}
 
- 	c := &Config{
-		GRPC:   gprc,
-		Logger: logger,
-		Redis:  redis,
-		MySQL:  mysql,	 
+	c := &Config{
+		GRPC:     gprc,
+		Logger:   logger,
+		Redis:    redis,
+		Postgres: postgres,
 	}
 
 	parseError := map[string]string{
-		GPRC_HOST:      "",
-		GRPC_PORT:      "",
-		REDIS_URL:      "",
-		REDIS_PASSWORD: "",
-		MYSQL_HOST:     "",
-		MYSQL_PORT:     "",
-		MYSQL_USER:     "",
-		MYSQL_PASSWORD: "",
-	 
+		GPRC_HOST:         "",
+		GRPC_PORT:         "",
+		REDIS_URL:         "",
+		REDIS_PASSWORD:    "",
+		POSTGRES_HOST:     "",
+		POSTGRES_PORT:     "",
+		POSTGRES_USER:     "",
+		POSTGRES_PASSWORD: "",
+		POSTGRES_DB:       "",
 	}
 
 	redisURL := os.Getenv(REDIS_URL)
@@ -142,32 +144,34 @@ func NewConfig() *Config {
 	}
  
 
-	mysqlHost := os.Getenv(MYSQL_HOST)
-
-	if mysqlHost != "" {
-		c.MySQL.MysqlHost = mysqlHost
-		parseError[MYSQL_HOST] = mysqlHost
+	postgresHost := os.Getenv(POSTGRES_HOST)
+	if postgresHost != "" {
+		c.Postgres.PostgresHost = postgresHost
+		parseError[POSTGRES_HOST] = postgresHost
 	}
 
-	mysqlPort := os.Getenv(MYSQL_PORT)
-	if mysqlPort != "" {
-		c.MySQL.MysqlPort = mysqlPort
-		parseError[MYSQL_PORT] = mysqlPort
-
+	postgresPort := os.Getenv(POSTGRES_PORT)
+	if postgresPort != "" {
+		c.Postgres.PostgresPort = postgresPort
+		parseError[POSTGRES_PORT] = postgresPort
 	}
 
-	mysqlUser := os.Getenv(MYSQL_USER)
-
-	if mysqlUser != "" {
-		c.MySQL.MysqlUser = mysqlUser
-		parseError[MYSQL_USER] = mysqlUser
+	postgresUser := os.Getenv(POSTGRES_USER)
+	if postgresUser != "" {
+		c.Postgres.PostgresUser = postgresUser
+		parseError[POSTGRES_USER] = postgresUser
 	}
 
-	mysqlPassword := os.Getenv(MYSQL_PASSWORD)
+	postgresPassword := os.Getenv(POSTGRES_PASSWORD)
+	if postgresPassword != "" {
+		c.Postgres.PostgresPassword = postgresPassword
+		parseError[POSTGRES_PASSWORD] = postgresPassword
+	}
 
-	if mysqlPassword != "" {
-		c.MySQL.MysqlPassword = mysqlPassword
-		parseError[MYSQL_PASSWORD] = mysqlPassword
+	postgresDB := os.Getenv(POSTGRES_DB)
+	if postgresDB != "" {
+		c.Postgres.PostgresDBName = postgresDB
+		parseError[POSTGRES_DB] = postgresDB
 	}
 
 	exitParse :=false

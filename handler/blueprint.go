@@ -99,7 +99,7 @@ func (b *Blueprint) Call(ctx context.Context, req *pb.CallRequest) (*pb.CallResp
 	b.incrementCacheMiss()
 
 	response := &pb.CallResponse{
-		Msg: fmt.Sprintf("Hello %s from Forex Platform", req.Name),
+		Msg: fmt.Sprintf("Hello %s from Platform", req.Name),
 	}
 
 	if err := b.processBusinessLogic(ctx, req, response); err != nil {

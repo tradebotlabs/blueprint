@@ -28,7 +28,7 @@ import (
 )
 
 var (
-	service = "forex-platform-blueprint"
+	service = "platform-blueprint"
 	version = "v2.0.0"
 )
 
@@ -109,13 +109,13 @@ func Start() {
 		panic("Could not initialize cache client")
 	}
 
-	dbSess, err := db.NewMysqlDB(cfg)
+	dbSess, err := db.NewPostgresDB(cfg)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 	defer dbSess.Close()
 
-	log.Info("Connected to MySQL database")
+	log.Info("Connected to PostgreSQL database")
 
 	if err := db.Migrate(cfg); err != nil {
 		log.Warnf("Migration failed: %v", err)

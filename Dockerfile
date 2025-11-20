@@ -1,5 +1,5 @@
 # Owner: JeelRupapara (zeelrupapara@gmail.com)
-# Multi-stage optimized Dockerfile for Forex Platform Blueprint Service
+# Multi-stage optimized Dockerfile for Platform Blueprint Service
 
 # Stage 1: Dependencies caching
 FROM golang:1.23-alpine AS deps

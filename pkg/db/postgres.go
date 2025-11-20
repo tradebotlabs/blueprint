@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"time"
 
-	"gorm.io/driver/mysql"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
@@ -22,7 +22,7 @@ const (
 	connMaxIdleTime = time.Minute * 10
 )
 
-type MysqlDB struct {
+type PostgresDB struct {
 	DB     *gorm.DB
 	sqlDB  *sql.DB
 	config *config.Config
@@ -36,8 +36,8 @@ type DBOptions struct {
 	LogLevel        logger.LogLevel
 }
 
-func NewMysqlDB(cfg *config.Config) (*MysqlDB, error) {
-	return NewMysqlDBWithOptions(cfg, DBOptions{
+func NewPostgresDB(cfg *config.Config) (*PostgresDB, error) {
+	return NewPostgresDBWithOptions(cfg, DBOptions{
 		MaxIdleConns:    maxIdleConns,
 		MaxOpenConns:    maxOpenConns,
 		ConnMaxLifetime: connMaxLifetime,
@@ -46,13 +46,13 @@ func NewMysqlDB(cfg *config.Config) (*MysqlDB, error) {
 	})
 }
 
-func NewMysqlDBWithOptions(cfg *config.Config, opts DBOptions) (*MysqlDB, error) {
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local&timeout=10s&readTimeout=30s&writeTimeout=30s",
-		cfg.MySQL.MysqlUser,
-		cfg.MySQL.MysqlPassword,
-		cfg.MySQL.MysqlHost,
-		cfg.MySQL.MysqlPort,
-		cfg.MySQL.MysqlDBName,
+func NewPostgresDBWithOptions(cfg *config.Config, opts DBOptions) (*PostgresDB, error) {
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=UTC",
+		cfg.Postgres.PostgresHost,
+		cfg.Postgres.PostgresUser,
+		cfg.Postgres.PostgresPassword,
+		cfg.Postgres.PostgresDBName,
+		cfg.Postgres.PostgresPort,
 	)
 
 	gormConfig := &gorm.Config{
@@ -61,7 +61,7 @@ func NewMysqlDBWithOptions(cfg *config.Config, opts DBOptions) (*MysqlDB, error)
 		QueryFields:                              true,
 		Logger:                                   logger.Default.LogMode(opts.LogLevel),
 		NamingStrategy: schema.NamingStrategy{
-			TablePrefix:   "forex_",
+			TablePrefix:   "platform_",
 			SingularTable: true,
 			NoLowerCase:   false,
 		},
@@ -70,7 +70,7 @@ func NewMysqlDBWithOptions(cfg *config.Config, opts DBOptions) (*MysqlDB, error)
 		},
 	}
 
-	db, err := gorm.Open(mysql.Open(dsn), gormConfig)
+	db, err := gorm.Open(postgres.Open(dsn), gormConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
@@ -85,49 +85,49 @@ func NewMysqlDBWithOptions(cfg *config.Config, opts DBOptions) (*MysqlDB, error)
 	sqlDB.SetConnMaxLifetime(opts.ConnMaxLifetime)
 	sqlDB.SetConnMaxIdleTime(opts.ConnMaxIdleTime)
 
-	mysqlDB := &MysqlDB{
+	postgresDB := &PostgresDB{
 		DB:     db,
 		sqlDB:  sqlDB,
 		config: cfg,
 	}
 
-	if err := mysqlDB.Ping(context.Background()); err != nil {
+	if err := postgresDB.Ping(context.Background()); err != nil {
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
-	return mysqlDB, nil
+	return postgresDB, nil
 }
 
-func (m *MysqlDB) Ping(ctx context.Context) error {
+func (m *PostgresDB) Ping(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 	
 	return m.sqlDB.PingContext(ctx)
 }
 
-func (m *MysqlDB) Close() error {
+func (m *PostgresDB) Close() error {
 	if m.sqlDB != nil {
 		return m.sqlDB.Close()
 	}
 	return nil
 }
 
-func (m *MysqlDB) Stats() sql.DBStats {
+func (m *PostgresDB) Stats() sql.DBStats {
 	if m.sqlDB != nil {
 		return m.sqlDB.Stats()
 	}
 	return sql.DBStats{}
 }
 
-func (m *MysqlDB) BeginTx(ctx context.Context, opts *sql.TxOptions) *gorm.DB {
+func (m *PostgresDB) BeginTx(ctx context.Context, opts *sql.TxOptions) *gorm.DB {
 	return m.DB.WithContext(ctx).Begin(opts)
 }
 
-func (m *MysqlDB) WithContext(ctx context.Context) *gorm.DB {
+func (m *PostgresDB) WithContext(ctx context.Context) *gorm.DB {
 	return m.DB.WithContext(ctx)
 }
 
-func (m *MysqlDB) HealthCheck(ctx context.Context) error {
+func (m *PostgresDB) HealthCheck(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
@@ -144,7 +144,7 @@ func (m *MysqlDB) HealthCheck(ctx context.Context) error {
 }
 
 func Migrate(cfg *config.Config) error {
-	db, err := NewMysqlDB(cfg)
+	db, err := NewPostgresDB(cfg)
 	if err != nil {
 		return fmt.Errorf("failed to connect for migration: %w", err)
 	}
@@ -157,7 +157,7 @@ func Migrate(cfg *config.Config) error {
 	return nil
 }
 
-func (m *MysqlDB) EnableSlowQueryLog(threshold time.Duration) {
+func (m *PostgresDB) EnableSlowQueryLog(threshold time.Duration) {
 	m.DB.Config.Logger = m.DB.Config.Logger.LogMode(logger.Info)
 	m.DB = m.DB.Session(&gorm.Session{
 		Logger: logger.Default.LogMode(logger.Info),

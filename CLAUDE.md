@@ -4,14 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a **Forex Platform Blueprint Service** - a template microservice that serves as a blueprint for creating new gRPC-based microservices in the Forex Platform ecosystem. When creating a new service, this entire repository should be renamed and customized according to the JIRA project requirements.
+This is a **Platform Blueprint Service** - a template microservice that serves as a blueprint for creating new gRPC-based microservices. When creating a new service, this entire repository should be renamed and customized according to the JIRA project requirements.
 
 **Owner:** JeelRupapara (zeelrupapara@gmail.com)
 **Lead Architect:** Emran A. Hamdan
 
 ## Critical Rules
 
-1. **Follow the established code structure** - This blueprint defines the standard architecture for all Forex Platform microservices
+1. **Follow the established code structure** - This blueprint defines the standard architecture for all microservices
 2. **Always run the service first** before making changes: `go run cmd/main.go`
 3. **If the service doesn't run, STOP and fix or ask for help** - never proceed with changes if the baseline is broken
 4. **MUST source environment variables** before running: `source export.sh`
@@ -29,13 +29,13 @@ source export.sh
 
 Configuration follows a dual-mode pattern:
 - **Static values**: Used when running locally (GRPC_HOST=127.0.0.1)
-- **Dynamic values**: Used in docker-compose network (MYSQL_HOST=mysql)
+- **Dynamic values**: Used in docker-compose network (POSTGRES_HOST=postgres)
 
 The config package (`config/config.go`) validates that all required environment variables are set on startup and panics if any are missing.
 
 ### Development Stack
 
-Start supporting services (Redis, MySQL) for local development:
+Start supporting services (Redis, PostgreSQL) for local development:
 
 ```bash
 sudo docker compose -f stack.yaml up -d
@@ -43,11 +43,11 @@ sudo docker compose -f stack.yaml up -d
 
 The stack includes:
 - **Redis** (port 6379) - Used for caching via the cache package
-- **MySQL 8.0.19** (port 3306) - Database with GORM integration
-  - Database: `vfxcore`
-  - User: `vfxuser` / Password: `root@12345`
+- **PostgreSQL 16** (port 5432) - Database with GORM integration
+  - Database: `platform_core`
+  - User: `dbuser` / Password: `root@12345`
   - Network name: `blueprint`
-  - Table prefix: `forex_` (configured in db package)
+  - Table prefix: `platform_` (configured in db package)
 
 ## Common Development Commands
 
@@ -114,7 +114,7 @@ sudo docker compose up -d
    - Initialize i18n for multi-language support (en-US, el-GR, zh-CN)
    - Start gRPC server with keepalive and recovery middleware
    - Connect to Redis and wrap with cache client
-   - Connect to MySQL and run migrations
+   - Connect to PostgreSQL and run migrations
    - Register gRPC handlers
    - Enable Prometheus metrics
    - Start graceful shutdown handler (listens for SIGTERM/SIGINT)
@@ -134,10 +134,10 @@ sudo docker compose up -d
 - Batch operations via Redis pipelining: `SetBatch()`, `GetBatch()`
 - Built-in statistics tracking (hits, misses, sets, deletes)
 
-**`pkg/db`** (mysql.go:39)
-- GORM wrapper with MySQL driver
+**`pkg/db`** (postgres.go:39)
+- GORM wrapper with PostgreSQL driver
 - Connection pooling (10 idle, 100 max open connections)
-- Table naming strategy: `forex_` prefix, singular table names
+- Table naming strategy: `platform_` prefix, singular table names
 - Auto-migration support via `Migrate()` function
 - Health check with 2-second timeout
 
@@ -187,7 +187,7 @@ Domain models are organized in `model/` by entity:
 - `model/blueprint/model.go` - Example model with GORM struct tags
 - `model/other/other.go` - Additional models
 
-Models use the `forex_` table prefix and singular naming (configured in db package).
+Models use the `platform_` table prefix and singular naming (configured in db package).
 
 ## Development Workflow
 
@@ -214,7 +214,7 @@ Models use the `forex_` table prefix and singular naming (configured in db packa
 
 ### Database Migrations
 
-Auto-migrations run on startup via `db.Migrate()` in `app.go:120`. Add new models to the migration list in `pkg/db/mysql.go:153`.
+Auto-migrations run on startup via `db.Migrate()` in `app.go:120`. Add new models to the migration list in `pkg/db/postgres.go:153`.
 
 ### Testing Strategy
 
@@ -226,8 +226,7 @@ Each handler should have a corresponding `*_test.go` file (e.g., `handler/bluepr
 
 ## Important Notes
 
-- **Database timezone**: Set to `Asia/Amman` in stack.yaml
-- **Default authentication**: MySQL uses `mysql_native_password` plugin
-- **Data persistence**: MySQL data stored in `${MYSQL_DATA}` path from export.sh
+- **Database timezone**: Set to `UTC` in stack.yaml
+- **Data persistence**: PostgreSQL data stored in `${POSTGRES_DATA}` path from export.sh
 - **Log output**: Combined file + console logging, file located at `blueprint.log` by default
 - **Service discovery**: Uses Docker network name `blueprint` for inter-service communication
